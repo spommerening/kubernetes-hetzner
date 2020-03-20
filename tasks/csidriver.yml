@@ -1,0 +1,37 @@
+---
+################################################################################
+###   Deploy CSI API and driver for Hetzner Cloud (Volumes)
+################################################################################
+
+# https://github.com/kubernetes/csi-api
+- name: Deploy CSI API csidriver
+  k8s:
+    state: present
+    definition: "{{ item }}"
+  loop: "{{ lookup('file', 'roles/kubernetes-hetzner/files/csi-api/csidriver.yaml').split('\n---\n')|map('from_yaml')|select('ne', None)|list }}"
+  tags: kubernetes-hetzner
+
+- name: Deploy CSI API csinodeinfo
+  k8s:
+    state: present
+    definition: "{{ item }}"
+  loop: "{{ lookup('file', 'roles/kubernetes-hetzner/files/csi-api/csinodeinfo.yaml').split('\n---\n')|map('from_yaml')|select('ne', None)|list }}"
+  tags: kubernetes-hetzner
+
+# https://github.com/hetznercloud/csi-driver
+- name: Deploy Hetzner Cloud CSI driver
+  k8s:
+    state: present
+    definition: "{{ item }}"
+  loop: "{{ lookup('file', 'roles/kubernetes-hetzner/files/csi-driver/hcloud-csi.yaml').split('\n---\n')|map('from_yaml')|select('ne', None)|list }}"
+  tags: kubernetes-hetzner
+
+- name: Create .csidriver_installed file
+  copy:
+    content: ""
+    dest: /root/.csidriver_installed
+    force: no
+    owner: root
+    group: root
+    mode: 0644
+  tags: kubernetes-hetzner

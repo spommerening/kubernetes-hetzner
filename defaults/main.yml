@@ -1,0 +1,21 @@
+---
+kubernetes_hetzner_docker_version: '5:18.09.9~3-0~ubuntu-bionic'
+kubernetes_hetzner_kubernetes_version: '1.16.7'
+kubernetes_hetzner_reset_cluster: False
+kubernetes_hetzner_init_cluster: False
+kubernetes_hetzner_dns_domain: cluster.local
+kubernetes_hetzner_control_plane_endpoint: https://127.0.0.1:6443
+kubernetes_hetzner_pod_network_cidr: '10.244.0.0/16'
+kubernetes_hetzner_service_subnet: '10.96.0.0/12'
+kubernetes_hetzner_dns_type: CoreDNS
+kubernetes_hetzner_authorization_mode: 'Node,RBAC'
+kubernetes_hetzner_control_plane_timeout: 4m0s
+
+kubernetes_hetzner_role_master: False
+kubernetes_hetzner_role_master_first: False
+kubernetes_hetzner_api_token: USE_VAULT_FOR_TOKEN
+kubernetes_hetzner_network_id: NOT_SET
+kubernetes_hetzner_cluster_name: kubernetes
+
+kubernetes_hetzner_helm_version: 2
+kubernetes_hetzner_install_metallb: False

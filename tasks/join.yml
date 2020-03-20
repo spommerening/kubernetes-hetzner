@@ -1,0 +1,57 @@
+---
+# Join additional master nodes to a Kubernetes cluster:
+# https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/
+
+- name: Create master-join.sh on new node
+  template:
+    src: master-join.sh.j2
+    dest: /root/master-join.sh
+    owner: root
+    group: root
+    mode: 0755
+  when: kubernetes_hetzner_role_master == True
+  tags: kubernetes-hetzner
+
+- name: Join cluster as a master node
+  shell: /root/master-join.sh
+  args:
+    creates: /etc/kubernetes/admin.conf
+  when: kubernetes_hetzner_role_master == True
+  tags: kubernetes-hetzner
+
+- name: Copy admin.conf to root user home directory
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /root/.kube/config
+    owner: root
+    group: root
+    mode: 0755
+    remote_src: true
+  when: kubernetes_hetzner_role_master == True
+  tags: kubernetes-hetzner
+
+- name: Create worker-join.sh on new node
+  template:
+    src: worker-join.sh.j2
+    dest: /root/worker-join.sh
+    owner: root
+    group: root
+    mode: 0755
+  when: kubernetes_hetzner_role_master == False
+  tags: kubernetes-hetzner
+
+- name: Join cluster as a worker node
+  shell: /root/worker-join.sh
+  args:
+    creates: /etc/kubernetes/kubelet.conf
+  when: kubernetes_hetzner_role_master == False
+  tags: kubernetes-hetzner
+
+- name: Link .kube/config
+  file:
+    path: /root/.kube/config
+    src: /etc/kubernetes/kubelet.conf
+    state: link
+  when: kubernetes_hetzner_role_master == False
+  tags: kubernetes-hetzner
+

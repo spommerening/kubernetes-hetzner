@@ -1,0 +1,97 @@
+---
+- name: Create master configuration for kubeadm init
+  template:
+    src: config.yaml.j2
+    dest: /etc/kubernetes/config.yaml
+    owner: root
+    group: root
+    mode: 0644
+  tags: kubernetes-hetzner
+
+- name: Init Kubernetes cluster
+  shell: |
+    kubeadm init --config /etc/kubernetes/config.yaml \
+                 --ignore-preflight-errors NumCPU
+  args:
+    creates: /etc/kubernetes/admin.conf
+  register: kubernetes_hetzner_init_cluster
+  tags: kubernetes-hetzner
+
+- name: Pause for 60 seconds
+  pause:
+    seconds: 60
+  when: kubernetes_hetzner_init_cluster is succeeded
+  tags: kubernetes-hetzner
+
+- name: Copy admin.conf to root user home directory
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /root/.kube/config
+    owner: root
+    group: root
+    mode: 0755
+    remote_src: true
+  when: kubernetes_hetzner_init_cluster is succeeded
+  tags: kubernetes-hetzner
+
+- name: Ensure secret 'hcloud' for accessing Hetzner Cloud API
+  k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: hcloud
+        namespace: kube-system
+      stringData:
+        token: "{{ kubernetes_hetzner_api_token | string }}"
+        network: "{{ kubernetes_hetzner_network_id | string }}"
+  tags: kubernetes-hetzner
+
+- name: Ensure secret 'hcloud-csi' for accessing Hetzner Cloud API
+  k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: hcloud-csi
+        namespace: kube-system
+      stringData:
+        token: "{{ kubernetes_hetzner_api_token | string }}"
+  tags: kubernetes-hetzner
+
+- name: Check if Flannel was already deployed
+  stat:
+    path: /root/.flannel_installed
+  register: flannel_installed
+  tags: kubernetes-hetzner
+
+- include: flannel.yml
+  when: flannel_installed.stat.exists == False
+  tags: kubernetes-hetzner
+
+# https://github.com/hetznercloud/hcloud-cloud-controller-manager
+- name: Deploy hcloud-cloud-controller-manager
+  k8s:
+    state: present
+    definition: "{{ item }}"
+  loop: "{{ lookup('file', 'roles/kubernetes-hetzner/files/cloud-controller-manager/master-deploy-networks.yaml').split('\n---\n')|map('from_yaml')|select('ne', None)|list }}"
+  tags: kubernetes-hetzner
+
+- name: Patch CoreDNS to tolerate external cloud provider taint
+  shell: |
+    kubectl -n kube-system patch deployment coredns \
+      --type json \
+      -p '[{"op":"add","path":"/spec/template/spec/tolerations/-","value":{"key":"node.cloudprovider.kubernetes.io/uninitialized","value":"true","effect":"NoSchedule"}}]'
+  tags: kubernetes-hetzner
+
+- name: Check if CSI API and driver were already deployed
+  stat:
+    path: /root/.csidriver_installed
+  register: csidriver_installed
+  tags: kubernetes-hetzner
+
+- include: csidriver.yml
+  when: csidriver_installed.stat.exists == False
+  tags: kubernetes-hetzner

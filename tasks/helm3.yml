@@ -1,0 +1,23 @@
+---
+# How to install Helm 3 (From Script)
+# https://helm.sh/docs/intro/install/
+#
+# This installs the Helm 3 client on all cluster nodes locally
+
+- name: Fetch Helm 3 install script
+  get_url:
+    url: https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+    dest: /root/get_helm.sh
+    mode: 0700
+  tags:
+    - kubernetes-hetzner
+    - kubernetes-hetzner-helm3
+
+- name: Install Helm 3 using install script
+  shell: ./get_helm.sh
+  args:
+    chdir: /root
+    creates: /usr/local/bin/helm
+  tags:
+    - kubernetes-hetzner
+    - kubernetes-hetzner-helm3

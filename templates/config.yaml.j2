@@ -1,0 +1,24 @@
+---
+# https://godoc.org/k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+clusterName: {{ kubernetes_hetzner_cluster_name }}
+kubernetesVersion: v{{ kubernetes_hetzner_kubernetes_version }}
+api:
+  advertiseAddress: 0.0.0.0
+controlPlaneEndpoint: {{ kubernetes_hetzner_control_plane_endpoint }}
+networking:
+  dnsDomain: {{ kubernetes_hetzner_dns_domain }}
+  serviceSubnet: {{ kubernetes_hetzner_service_subnet }}
+  podSubnet: {{ kubernetes_hetzner_pod_network_cidr }}
+dns:
+  type: {{ kubernetes_hetzner_dns_type }}
+apiServer:
+  extraArgs:
+    authorization-mode: "{{ kubernetes_hetzner_authorization_mode }}"
+  certSANs:
+    - "127.0.0.1"
+    - "{{ hostvars[inventory_hostname]['ansible_ens10']['ipv4']['address'] }}"
+    - "{{ hostvars[inventory_hostname]['ansible_eth0']['ipv4']['address'] }}"
+    - "{{ ansible_hostname }}.{{ kubernetes_hetzner_dns_domain }}"
+  timeoutForControlPlane: {{ kubernetes_hetzner_control_plane_timeout }}

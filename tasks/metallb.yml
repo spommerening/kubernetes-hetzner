@@ -1,0 +1,100 @@
+# How to install MetalLB
+# - load-balancer implementation for bare metal Kubernetes clusters
+# https://hub.helm.sh/charts/stable/metallb
+#
+# MetalLB can reuse IPs for multiple LoadBalancer services if some conditions are met.
+# This can be enabled by adding an annotation metallb.universe.tf/allow-shared-ip to the service.
+
+- name: Create MetalLB namespace in cluster
+  k8s:
+    name: metallb
+    api_version: v1
+    kind: Namespace
+    state: present
+  tags:
+    - kubernetes-hetzner
+    - kubernetes-hetzner-metallb
+
+- name: Add stable charts repo to Helm
+  command: |
+    helm repo add stable https://kubernetes-charts.storage.googleapis.com
+  tags:
+    - kubernetes-hetzner
+    - kubernetes-hetzner-metallb
+
+- name: Update Helm chart repositories
+  command: |
+    helm repo update
+  tags:
+    - kubernetes-hetzner
+    - kubernetes-hetzner-metallb
+
+- name: Install MetalLB helm chart
+  command: |
+    helm install -n metallb stable/metallb --namespace metallb
+  register: helm_install_result
+  changed_when: "'already exists' not in helm_install_result.stdout"
+  ignore_errors: yes
+  tags:
+    - kubernetes-hetzner
+    - kubernetes-hetzner-metallb
+
+- name: Create config map for MetalLB
+  k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        namespace: metallb
+        name: metallb-config
+      data:
+        config: |
+          address-pools:
+          - name: default
+            protocol: layer2
+            addresses:
+            - {{ kubernetes_hetzner_floating_ip }}/32
+  tags:
+    - kubernetes-hetzner
+    - kubernetes-hetzner-metallb
+
+# hcloud-fip-controller is a small controller, to handle floating IP management
+# in a Kubernetes cluster on Hetzner Cloud virtual machines.
+# https://github.com/cbeneke/hcloud-fip-controller
+- name: Create fip-controller namespace in cluster
+  k8s:
+    name: fip-controller
+    api_version: v1
+    kind: Namespace
+    state: present
+  tags:
+    - kubernetes-hetzner
+    - kubernetes-hetzner-metallb
+
+- name: Create fip-controller SA and RBAC config
+  k8s:
+    state: present
+    definition: "{{ item }}"
+  loop: "{{ lookup('template', 'roles/kubernetes-hetzner/templates/hcloud-fip-controller/rbac.yaml').split('\n---\n')|map('from_yaml')|select('ne', None)|list }}"
+  tags:
+    - kubernetes-hetzner
+    - kubernetes-hetzner-metallb
+
+- name: Create fip-controller deployment
+  k8s:
+    state: present
+    definition: "{{ item }}"
+  loop: "{{ lookup('template', 'roles/kubernetes-hetzner/templates/hcloud-fip-controller/deployment.yaml').split('\n---\n')|map('from_yaml')|select('ne', None)|list }}"
+  tags:
+    - kubernetes-hetzner
+    - kubernetes-hetzner-metallb
+
+- name: Create fip-controller config
+  k8s:
+    state: present
+    definition: "{{ item }}"
+  loop: "{{ lookup('template', 'roles/kubernetes-hetzner/templates/hcloud-fip-controller/config.yaml').split('\n---\n')|map('from_yaml')|select('ne', None)|list }}"
+  tags:
+    - kubernetes-hetzner
+    - kubernetes-hetzner-metallb

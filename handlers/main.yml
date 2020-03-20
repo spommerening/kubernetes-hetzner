@@ -1,0 +1,6 @@
+---
+- name: Reread Systemd Configuration
+  systemd:
+    daemon_reload: yes
+    name: networking
+  tags: kubernetes-hetzner

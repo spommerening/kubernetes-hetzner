@@ -1,0 +1,29 @@
+---
+################################################################################
+###   Deploy Flannel CNI
+################################################################################
+
+# https://github.com/coreos/flannel
+- name: Deploy flannel networking to cluster
+  k8s:
+    state: present
+    definition: "{{ item }}"
+  loop: "{{ lookup('file', 'roles/kubernetes-hetzner/files/kube-flannel.yaml').split('\n---\n')|map('from_yaml')|select('ne', None)|list }}"
+  tags: kubernetes-hetzner
+
+- name: Patch Flannel to tolerate external cloud provider taint
+  shell: |
+    kubectl -n kube-system patch daemonset kube-flannel-ds-amd64 \
+      --type json \
+      -p '[{"op":"add","path":"/spec/template/spec/tolerations/-","value":{"key":"node.cloudprovider.kubernetes.io/uninitialized","value":"true","effect":"NoSchedule"}}]'
+  tags: kubernetes-hetzner
+
+- name: Create .flannel_installed file
+  copy:
+    content: ""
+    dest: /root/.flannel_installed
+    force: no
+    owner: root
+    group: root
+    mode: 0644
+  tags: kubernetes-hetzner

@@ -1,0 +1,58 @@
+---
+- name: Apt pin docker-ce
+  template:
+    src: apt-pin-docker.j2
+    dest: "/etc/apt/preferences.d/docker-ce"
+    owner: root
+    group: root
+    mode: 0644
+  tags: kubernetes-hetzner
+
+- name: Install docker-ce package
+  package:
+    name: docker-ce
+    state: present
+  tags: kubernetes-hetzner
+
+- name: Apt pin kubelet, kubeadm, kubectl
+  template:
+    src: apt-pin-kubernetes.j2
+    dest: "/etc/apt/preferences.d/{{ item }}"
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - kubectl
+    - kubelet
+    - kubeadm
+  tags: kubernetes-hetzner
+
+- name: Install Kubernetes packages
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - kubectl
+    - kubelet
+    - kubeadm
+  tags: kubernetes-hetzner
+
+- name: Ensure Kubernetes config directory
+  file:
+    path: /root/.kube
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  tags: kubernetes-hetzner
+
+- name: Add kubectl alias to .bashrc
+  lineinfile:
+    path: /root/.bashrc
+    line: alias k=kubectl
+  tags: kubernetes-hetzner
+
+- name: Reset Kubernetes component
+  shell: "kubeadm reset --force"
+  when: kubernetes_hetzner_reset_cluster
+  tags: kubernetes-hetzner

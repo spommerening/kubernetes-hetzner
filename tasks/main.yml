@@ -1,0 +1,41 @@
+---
+- include: prepare-Debian.yml
+  when: ansible_os_family == 'Debian'
+
+- include: install-Debian.yml
+  when: ansible_os_family == 'Debian'
+
+# Init first master node
+- include: init.yml
+  when: ansible_hostname == kubernetes_hetzner_init_node
+
+- name: Fetch join command from init node
+  shell: kubeadm token create --print-join-command
+  register: kubeadm_token
+  run_once: True
+  delegate_to: "{{ kubernetes_hetzner_init_node }}"
+  tags: kubernetes-hetzner
+
+- name: Fetch certificate key from init node
+  shell: kubeadm init phase upload-certs --upload-certs 2>&1 | tail -1
+  register: certificate_key
+  run_once: True
+  # when: kubernetes_hetzner_role_master == True
+  delegate_to: "{{ kubernetes_hetzner_init_node }}"
+  tags: kubernetes-hetzner
+
+# Join cluster, master and/or worker node
+- include: join.yml
+  when: ansible_hostname != kubernetes_hetzner_init_node
+
+- include: helm2.yml
+  when: kubernetes_hetzner_helm_version == 2
+
+- include: helm3.yml
+  when: kubernetes_hetzner_helm_version == 3
+
+- include: metallb.yml
+  when:
+    - ansible_hostname == kubernetes_hetzner_init_node
+    - kubernetes_hetzner_helm_version == 2
+    - kubernetes_hetzner_install_metallb
