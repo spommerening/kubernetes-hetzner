@@ -57,4 +57,6 @@
     reload: yes
   with_items:
     - net.ipv4.ip_forward
+    - net.ipv6.conf.all.disable_ipv6
+    - net.ipv6.conf.default.disable_ipv6
   tags: kubernetes-hetzner
