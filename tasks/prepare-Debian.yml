@@ -1,19 +1,20 @@
 ---
-- name: Ensure python-pip is installed for k8s module
+- name: Ensure python3-pip and python3-setuptools are installed for k8s module
   package:
-    name: python-pip
+    name: [ python3-pip, python3-setuptools ]
     state: present
+  tags: kubernetes-hetzner
+
+- name: Upgrade pip3
+  pip:
+    name: pip
+    extra_args: --upgrade
   tags: kubernetes-hetzner
 
 - name: Ensure openshift is installed for k8s module
   pip:
-    name: "{{ item }}"
+    name: [ openshift, pyhelm, grpcio ]
     state: present
-  with_items:
-    - setuptools
-    - openshift
-    - pyhelm
-    - grpcio
   tags: kubernetes-hetzner
 
 - name: Ensure additonal systemd directories

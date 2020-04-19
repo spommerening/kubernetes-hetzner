@@ -16,6 +16,9 @@
   delegate_to: "{{ kubernetes_hetzner_init_node }}"
   tags: kubernetes-hetzner
 
+- debug:
+    var: kubeadm_token
+
 - name: Fetch certificate key from init node
   shell: kubeadm init phase upload-certs --upload-certs 2>&1 | tail -1
   register: certificate_key
@@ -23,6 +26,9 @@
   # when: kubernetes_hetzner_role_master == True
   delegate_to: "{{ kubernetes_hetzner_init_node }}"
   tags: kubernetes-hetzner
+
+- debug:
+    var: certificate_key
 
 # Join cluster, master and/or worker node
 - include: join.yml

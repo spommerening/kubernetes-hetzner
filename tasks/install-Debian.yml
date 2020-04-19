@@ -29,12 +29,8 @@
 
 - name: Install Kubernetes packages
   apt:
-    name: "{{ item }}"
+    name: [ kubectl, kubelet, kubeadm ]
     state: present
-  with_items:
-    - kubectl
-    - kubelet
-    - kubeadm
   tags: kubernetes-hetzner
 
 - name: Ensure Kubernetes config directory
